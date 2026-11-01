@@ -6,10 +6,29 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-if len(sys.argv) != 2:
-    raise SystemExit("Использование: tools/release v1.0.4")
+if len(sys.argv) < 2:
+    raise SystemExit("Использование: tools/release v1.0.5 --note \"Описание изменения\"")
 
 version = sys.argv[1] if sys.argv[1].startswith("v") else f"v{sys.argv[1]}"
+notes = []
+index = 2
+while index < len(sys.argv):
+    if sys.argv[index] != "--note" or index + 1 >= len(sys.argv):
+        raise SystemExit("Каждая заметка должна передаваться как --note \"текст\"")
+    notes.append(sys.argv[index + 1])
+    index += 2
+if not notes:
+    raise SystemExit("Нужна хотя бы одна заметка через --note")
+
+changelog_file = ROOT / "CHANGELOG.md"
+changelog = changelog_file.read_text(encoding="utf-8")
+section = f"## [{version.removeprefix('v')}]"
+if section in changelog:
+    raise SystemExit(f"Версия уже присутствует в CHANGELOG.md: {version}")
+notes_text = "\n".join(f"- {note}" for note in notes)
+changelog = changelog.replace("# История изменений\n", f"# История изменений\n\n{section}\n\n{notes_text}\n", 1)
+changelog_file.write_text(changelog, encoding="utf-8")
+
 subprocess.run([str(ROOT / "tools" / "validate-release"), version], cwd=ROOT, check=True)
 
 status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, text=True, capture_output=True, check=True).stdout.strip()
