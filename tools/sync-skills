@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Создаёт симлинки на группы skills из registry в целевом проекте."""
+
+from pathlib import Path
+import os
+import re
+import sys
+
+PROJECT_ROOT = Path.cwd()
+config_file = PROJECT_ROOT / ".skill-registry.yaml"
+if not config_file.exists():
+    raise SystemExit("Не найден .skill-registry.yaml в целевом проекте")
+
+config = dict(re.findall(r"^([a-z_]+):\s*(.+)$", config_file.read_text(encoding="utf-8"), re.MULTILINE))
+profile = config.get("profile")
+registry = (PROJECT_ROOT / config.get("registry_path", "skill-registry")).resolve()
+skills_path = PROJECT_ROOT / config.get("skills_path", ".skills")
+manifest = registry / "profiles" / profile / "manifest.yaml"
+
+if not profile or not manifest.exists():
+    raise SystemExit(f"Профиль не найден: {profile or '<не указан>'}")
+
+skills = re.findall(r"^\s+-\s+([^\s#]+)\s*$", manifest.read_text(encoding="utf-8"), re.MULTILINE)
+groups = sorted({skill.split("/", 1)[0] for skill in skills})
+skills_path.mkdir(parents=True, exist_ok=True)
+
+for group in groups:
+    source = registry / "skills" / group
+    destination = skills_path / group
+    if not source.is_dir():
+        raise SystemExit(f"Группа не найдена: {source}")
+    if destination.is_symlink() or destination.exists():
+        if destination.is_dir() and not destination.is_symlink():
+            raise SystemExit(f"Отказано в замене обычного каталога: {destination}")
+        destination.unlink()
+    destination.symlink_to(Path(os.path.relpath(source, destination.parent)))
+    print(f"Создана ссылка: {destination} -> {source}")
+
+print(f"Синхронизация завершена: {len(groups)} группы")

@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+"""Проверяет структуру registry без внешних зависимостей."""
+
+from pathlib import Path
+import re
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+errors: list[str] = []
+names: dict[str, Path] = {}
+
+for skill_file in sorted((ROOT / "skills").glob("*/**/SKILL.md")):
+    text = skill_file.read_text(encoding="utf-8")
+    if not text.startswith("---\n") or "\n---\n" not in text[4:]:
+        errors.append(f"{skill_file}: отсутствует front matter")
+        continue
+    frontmatter = text[4 : text.index("\n---\n", 4)]
+    fields = dict(re.findall(r"^([a-z_]+):\s*(.+)$", frontmatter, re.MULTILINE))
+    for field in ("name", "description", "stack", "scope"):
+        if field not in fields:
+            errors.append(f"{skill_file}: отсутствует поле {field}")
+    expected = "/".join(skill_file.relative_to(ROOT / "skills").parts[:2])
+    actual = fields.get("name", "")
+    if actual in names:
+        errors.append(f"дублируется имя {actual}: {names[actual]} и {skill_file}")
+    names[actual] = skill_file
+    if actual and actual != skill_file.parent.name:
+        errors.append(f"{skill_file}: name должен совпадать с именем каталога")
+
+for manifest in sorted((ROOT / "profiles").glob("*/manifest.yaml")):
+    text = manifest.read_text(encoding="utf-8")
+    listed = re.findall(r"^\s+-\s+([^\s#]+)\s*$", text, re.MULTILINE)
+    if not re.search(r"^name:\s*[^\s]+", text, re.MULTILINE):
+        errors.append(f"{manifest}: отсутствует имя профиля")
+    if len(listed) != len(set(listed)):
+        errors.append(f"{manifest}: skill указан больше одного раза")
+    for skill in listed:
+        if not (ROOT / "skills" / skill / "SKILL.md").exists():
+            errors.append(f"{manifest}: skill не найден: {skill}")
+
+if errors:
+    print("Проверка не пройдена:")
+    print("\n".join(f"- {error}" for error in errors))
+    sys.exit(1)
+
+print(f"Проверка пройдена: {len(names)} skills, {len(list((ROOT / 'profiles').glob('*/manifest.yaml')))} профиля")

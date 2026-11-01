@@ -1,0 +1,15 @@
+name: fullstack
+description: Профиль для проекта с Vue, Python и Elixir.
+skills:
+  - common/code-review
+  - common/debugging
+  - common/testing
+  - vue/vue-components
+  - vue/vue-state
+  - vue/vue-testing
+  - python/python-api
+  - python/python-testing
+  - python/python-quality
+  - elixir/elixir-domain
+  - elixir/elixir-otp
+  - elixir/elixir-testing

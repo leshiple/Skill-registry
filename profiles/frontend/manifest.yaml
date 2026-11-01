@@ -1,0 +1,9 @@
+name: frontend
+description: Общий профиль для фронтенд-проектов на Vue.
+skills:
+  - common/code-review
+  - common/debugging
+  - common/testing
+  - vue/vue-components
+  - vue/vue-state
+  - vue/vue-testing

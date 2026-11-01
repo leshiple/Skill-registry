@@ -1,0 +1,9 @@
+name: backend-python
+description: Общий профиль для Python-бэкендов.
+skills:
+  - common/code-review
+  - common/debugging
+  - common/testing
+  - python/python-api
+  - python/python-testing
+  - python/python-quality

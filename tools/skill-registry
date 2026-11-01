@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Единая CLI-точка для работы с registry в целевом проекте."""
+
+from pathlib import Path
+import argparse
+import re
+import subprocess
+import sys
+
+PROJECT_ROOT = Path.cwd()
+REGISTRY_ROOT = Path(__file__).resolve().parents[1]
+
+
+def available_profiles() -> list[str]:
+    return sorted(path.parent.name for path in (REGISTRY_ROOT / "profiles").glob("*/manifest.yaml"))
+
+
+def select_profile() -> str:
+    profiles = available_profiles()
+    if not profiles:
+        raise SystemExit("В registry нет доступных профилей")
+    print("Доступные профили:")
+    for index, profile in enumerate(profiles, 1):
+        print(f"  {index}. {profile}")
+    while True:
+        answer = input("Выберите номер профиля: ").strip()
+        if answer.isdigit() and 1 <= int(answer) <= len(profiles):
+            return profiles[int(answer) - 1]
+        print("Введите номер из списка.")
+
+
+def write_profile(profile: str, force: bool) -> None:
+    config_file = PROJECT_ROOT / ".skill-registry.yaml"
+    if config_file.exists() and not force:
+        raise SystemExit(".skill-registry.yaml уже существует; используйте --force для перезаписи")
+    config_file.write_text(
+        f"profile: {profile}\n"
+        "registry_path: skill-registry\n"
+        "skills_path: .skills\n",
+        encoding="utf-8",
+    )
+    print(f"Профиль записан: {config_file} ({profile})")
+
+
+def run(script: str) -> int:
+    return subprocess.run([sys.executable, str(REGISTRY_ROOT / "tools" / script)], cwd=PROJECT_ROOT).returncode
+
+
+parser = argparse.ArgumentParser(description="Управление навыками из skill registry")
+subparsers = parser.add_subparsers(dest="command", required=True)
+
+subparsers.add_parser("validate", help="проверить registry")
+
+profile_parser = subparsers.add_parser("profile", help="выбрать и записать профиль проекта")
+profile_parser.add_argument("--name", choices=available_profiles(), help="имя профиля без интерактивного выбора")
+profile_parser.add_argument("--force", action="store_true", help="перезаписать существующую конфигурацию")
+
+subparsers.add_parser("sync", help="создать или обновить симлинки навыков")
+
+args = parser.parse_args()
+
+if args.command == "validate":
+    raise SystemExit(run("validate-skills"))
+if args.command == "profile":
+    write_profile(args.name or select_profile(), args.force)
+    raise SystemExit(0)
+if args.command == "sync":
+    raise SystemExit(run("sync-skills"))

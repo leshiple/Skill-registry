@@ -1,0 +1,9 @@
+name: backend-elixir
+description: Общий профиль для Elixir-бэкендов.
+skills:
+  - common/code-review
+  - common/debugging
+  - common/testing
+  - elixir/elixir-domain
+  - elixir/elixir-otp
+  - elixir/elixir-testing
