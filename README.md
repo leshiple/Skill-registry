@@ -150,6 +150,17 @@ python3 skill-registry/tools/skill-registry sync
 
 Скрипт читает профиль из `profiles/<profile>/manifest.yaml`, а затем создаёт ссылки на группы навыков для каждого выбранного ИИ.
 
+На macOS и Linux создаются относительные симлинки. На Windows создаются directory junction через `mklink /J`; для этого обычно не нужны права администратора. Поэтому разработчикам не требуется вручную включать Developer Mode.
+
+Сгенерированные каталоги навыков обычно не коммитятся в проект:
+
+```gitignore
+.claude/skills/
+.cursor/skills/
+.agents/skills/
+.deepseek/skills/
+```
+
 ## Версионирование
 
 Используется SemVer:

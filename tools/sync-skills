@@ -4,6 +4,7 @@
 from pathlib import Path
 import os
 import re
+import subprocess
 import sys
 
 PROJECT_ROOT = Path.cwd()
@@ -22,6 +23,32 @@ ai_paths = {
     "codex": ".agents/skills",
     "deepseek": ".deepseek/skills",
 }
+
+
+def remove_link(path: Path) -> None:
+    if path.is_symlink() or (hasattr(path, "is_junction") and path.is_junction()):
+        if hasattr(path, "is_junction") and path.is_junction():
+            path.rmdir()
+        else:
+            path.unlink()
+        return
+    if path.exists():
+        raise SystemExit(f"Отказано в замене обычного каталога: {path}")
+
+
+def create_link(source: Path, destination: Path) -> None:
+    if destination.exists() or destination.is_symlink() or (hasattr(destination, "is_junction") and destination.is_junction()):
+        remove_link(destination)
+    if os.name == "nt":
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(destination), str(source)],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode:
+            raise SystemExit(f"Не удалось создать junction {destination}: {result.stderr.strip()}")
+    else:
+        destination.symlink_to(Path(os.path.relpath(source, destination.parent)))
 manifest = registry / "profiles" / profile / "manifest.yaml"
 
 if not profile or not manifest.exists():
@@ -42,11 +69,7 @@ for ai in ais:
         destination = skills_path / group
         if not source.is_dir():
             raise SystemExit(f"Группа не найдена: {source}")
-        if destination.is_symlink() or destination.exists():
-            if destination.is_dir() and not destination.is_symlink():
-                raise SystemExit(f"Отказано в замене обычного каталога: {destination}")
-            destination.unlink()
-        destination.symlink_to(Path(os.path.relpath(source, destination.parent)))
+        create_link(source, destination)
         print(f"Создана ссылка: {destination} -> {source}")
 
 print(f"Синхронизация завершена: {len(groups)} группы для {len(ais)} ИИ-инструментов")
