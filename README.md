@@ -36,66 +36,73 @@ scope: shared
 
 ## Подключение к проекту
 
-Добавь registry как submodule:
+Сначала клонируй registry в целевой проект как submodule:
 
 ```bash
-git submodule add git@github.com:company/skill-registry.git skill-registry
-git -C skill-registry checkout v1.0.0
-git add .gitmodules skill-registry
-git commit -m "chore: подключить реестр навыков"
+git submodule add https://github.com/leshiple/Skill-registry.git skill-registry
 ```
 
-### Выбор профиля
+Затем переключись на последний опубликованный тег:
 
-Профиль выбирается в файле `.skill-registry.yaml` целевого проекта. Доступны:
+```bash
+git -C skill-registry fetch --tags
+git -C skill-registry checkout "$(git -C skill-registry tag --sort=-version:refname | head -n 1)"
+```
+
+### Выбор профиля и ИИ-инструментов
+
+Универсальный скрипт сам создаёт `.skill-registry.yaml` и симлинки:
+
+```bash
+python3 skill-registry/tools/skill-registry setup
+```
+
+Скрипт попросит выбрать профиль и один или несколько ИИ-инструментов:
 
 - `frontend` — общие навыки и Vue;
 - `backend-python` — общие навыки и Python;
 - `backend-elixir` — общие навыки и Elixir;
-- `fullstack` — общие навыки, Vue, Python и Elixir.
+- `fullstack` — общие навыки, Vue, Python и Elixir;
+- `Claude` — `.claude/skills`;
+- `Cursor` — `.cursor/skills`;
+- `Codex` — `.agents/skills`;
+- `DeepSeek` — `.deepseek/skills`.
 
-Например, для Vue-проекта создай файл:
+После выбора скрипт создаст файл примерно такого вида:
 
 ```yaml
 profile: frontend
 registry_path: skill-registry
-skills_path: .skills
+ais:
+  - claude
+  - codex
 ```
 
-Для Python-проекта значение будет другим:
+И создаст симлинки выбранных групп в каталогах выбранных ИИ. Например:
 
-```yaml
-profile: backend-python
-registry_path: skill-registry
-skills_path: .skills
+```text
+.claude/skills/common -> ../../skill-registry/skills/common
+.claude/skills/vue    -> ../../skill-registry/skills/vue
+.agents/skills/common -> ../../skill-registry/skills/common
+.agents/skills/vue    -> ../../skill-registry/skills/vue
 ```
 
-Значение `profile` должно совпадать с именем каталога в `profiles/`.
-
-После клонирования проекта выполни:
+Профиль и ИИ можно выбрать без интерактива:
 
 ```bash
-git submodule update --init --recursive
-python3 tools/sync-skills
+python3 skill-registry/tools/skill-registry setup \
+  --profile frontend \
+  --ai claude \
+  --ai codex
 ```
 
-Скрипт читает `profile`, открывает соответствующий `profiles/<profile>/manifest.yaml` и создаёт относительные ссылки `.skills/<группа>` на группы навыков, перечисленные в этом manifest. Каталог `.skills` можно добавить в `.gitignore`.
-
-Чтобы переключить проект на другой профиль, измени только `profile` и повторно запусти:
+Для изменения только симлинков после обновления registry выполни:
 
 ```bash
-python3 tools/sync-skills
+python3 skill-registry/tools/skill-registry sync
 ```
 
-Например:
-
-```bash
-sed -i.bak 's/^profile: frontend$/profile: fullstack/' .skill-registry.yaml
-python3 tools/sync-skills
-rm .skill-registry.yaml.bak
-```
-
-После переключения в `.skills` появятся группы `common`, `vue`, `python` и `elixir`.
+Скрипт читает профиль из `profiles/<profile>/manifest.yaml`, а затем создаёт ссылки на группы навыков для каждого выбранного ИИ.
 
 ## Версионирование
 
@@ -141,11 +148,13 @@ python3 skill-registry/tools/skill-registry profile
 python3 skill-registry/tools/skill-registry profile --name frontend
 
 # Перезаписать существующий файл профиля
-python3 skill-registry/tools/skill-registry profile --name backend-python --force
+python3 skill-registry/tools/skill-registry profile --name backend-python
 
 # Создать или обновить симлинки
 python3 skill-registry/tools/skill-registry sync
 ```
+
+Команда `setup` объединяет `profile` и `sync` в один шаг.
 
 Обычный сценарий настройки нового проекта:
 
@@ -158,5 +167,3 @@ python3 skill-registry/tools/skill-registry sync
 ## Версионирование
 
 Используется SemVer: `MAJOR.MINOR.PATCH`. Проекты подключают конкретный тег, например `v1.0.0`, и обновляют его отдельным изменением.
-
-Подробности находятся в `docs/`.

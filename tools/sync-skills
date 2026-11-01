@@ -11,10 +11,17 @@ config_file = PROJECT_ROOT / ".skill-registry.yaml"
 if not config_file.exists():
     raise SystemExit("Не найден .skill-registry.yaml в целевом проекте")
 
-config = dict(re.findall(r"^([a-z_]+):\s*(.+)$", config_file.read_text(encoding="utf-8"), re.MULTILINE))
+config_text = config_file.read_text(encoding="utf-8")
+config = dict(re.findall(r"^([a-z_]+):\s*(.+)$", config_text, re.MULTILINE))
 profile = config.get("profile")
 registry = (PROJECT_ROOT / config.get("registry_path", "skill-registry")).resolve()
-skills_path = PROJECT_ROOT / config.get("skills_path", ".skills")
+ais = re.findall(r"^\s+-\s+([^\s#]+)\s*$", config_text.split("ais:", 1)[-1], re.MULTILINE)
+ai_paths = {
+    "claude": ".claude/skills",
+    "cursor": ".cursor/skills",
+    "codex": ".agents/skills",
+    "deepseek": ".deepseek/skills",
+}
 manifest = registry / "profiles" / profile / "manifest.yaml"
 
 if not profile or not manifest.exists():
@@ -22,18 +29,24 @@ if not profile or not manifest.exists():
 
 skills = re.findall(r"^\s+-\s+([^\s#]+)\s*$", manifest.read_text(encoding="utf-8"), re.MULTILINE)
 groups = sorted({skill.split("/", 1)[0] for skill in skills})
-skills_path.mkdir(parents=True, exist_ok=True)
+if not ais:
+    raise SystemExit("В .skill-registry.yaml не выбран ни один ИИ-инструмент")
 
-for group in groups:
-    source = registry / "skills" / group
-    destination = skills_path / group
-    if not source.is_dir():
-        raise SystemExit(f"Группа не найдена: {source}")
-    if destination.is_symlink() or destination.exists():
-        if destination.is_dir() and not destination.is_symlink():
-            raise SystemExit(f"Отказано в замене обычного каталога: {destination}")
-        destination.unlink()
-    destination.symlink_to(Path(os.path.relpath(source, destination.parent)))
-    print(f"Создана ссылка: {destination} -> {source}")
+for ai in ais:
+    if ai not in ai_paths:
+        raise SystemExit(f"Неизвестный ИИ-инструмент: {ai}")
+    skills_path = PROJECT_ROOT / ai_paths[ai]
+    skills_path.mkdir(parents=True, exist_ok=True)
+    for group in groups:
+        source = registry / "skills" / group
+        destination = skills_path / group
+        if not source.is_dir():
+            raise SystemExit(f"Группа не найдена: {source}")
+        if destination.is_symlink() or destination.exists():
+            if destination.is_dir() and not destination.is_symlink():
+                raise SystemExit(f"Отказано в замене обычного каталога: {destination}")
+            destination.unlink()
+        destination.symlink_to(Path(os.path.relpath(source, destination.parent)))
+        print(f"Создана ссылка: {destination} -> {source}")
 
-print(f"Синхронизация завершена: {len(groups)} группы")
+print(f"Синхронизация завершена: {len(groups)} группы для {len(ais)} ИИ-инструментов")

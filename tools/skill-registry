@@ -9,6 +9,12 @@ import sys
 
 PROJECT_ROOT = Path.cwd()
 REGISTRY_ROOT = Path(__file__).resolve().parents[1]
+AI_PATHS = {
+    "claude": ".claude/skills",
+    "cursor": ".cursor/skills",
+    "codex": ".agents/skills",
+    "deepseek": ".deepseek/skills",
+}
 
 
 def available_profiles() -> list[str]:
@@ -29,17 +35,34 @@ def select_profile() -> str:
         print("Введите номер из списка.")
 
 
-def write_profile(profile: str, force: bool) -> None:
+def select_ais() -> list[str]:
+    names = list(AI_PATHS)
+    print("\nДоступные ИИ-инструменты:")
+    for index, name in enumerate(names, 1):
+        print(f"  {index}. {name.capitalize()}")
+    print("Выберите один или несколько номеров через запятую.")
+    while True:
+        answer = input("ИИ-инструменты: ").strip()
+        try:
+            indexes = sorted({int(value.strip()) for value in answer.split(",")})
+        except ValueError:
+            indexes = []
+        if indexes and all(1 <= index <= len(names) for index in indexes):
+            return [names[index - 1] for index in indexes]
+        print("Введите номера из списка через запятую.")
+
+
+def write_profile(profile: str, ais: list[str]) -> None:
     config_file = PROJECT_ROOT / ".skill-registry.yaml"
-    if config_file.exists() and not force:
-        raise SystemExit(".skill-registry.yaml уже существует; используйте --force для перезаписи")
+    ai_lines = "\n".join(f"  - {name}" for name in ais)
     config_file.write_text(
         f"profile: {profile}\n"
         "registry_path: skill-registry\n"
-        "skills_path: .skills\n",
+        "ais:\n"
+        f"{ai_lines}\n",
         encoding="utf-8",
     )
-    print(f"Профиль записан: {config_file} ({profile})")
+    print(f"Конфигурация записана: {config_file} (профиль: {profile}; ИИ: {', '.join(ais)})")
 
 
 def run(script: str) -> int:
@@ -53,16 +76,23 @@ subparsers.add_parser("validate", help="проверить registry")
 
 profile_parser = subparsers.add_parser("profile", help="выбрать и записать профиль проекта")
 profile_parser.add_argument("--name", choices=available_profiles(), help="имя профиля без интерактивного выбора")
-profile_parser.add_argument("--force", action="store_true", help="перезаписать существующую конфигурацию")
+profile_parser.add_argument("--ai", choices=sorted(AI_PATHS), action="append", dest="ais", help="ИИ-инструмент; можно указать несколько раз")
 
 subparsers.add_parser("sync", help="создать или обновить симлинки навыков")
+
+setup_parser = subparsers.add_parser("setup", help="выбрать профиль и ИИ, создать конфигурацию и симлинки")
+setup_parser.add_argument("--profile", choices=available_profiles(), help="профиль без интерактивного выбора")
+setup_parser.add_argument("--ai", choices=sorted(AI_PATHS), action="append", dest="ais", help="ИИ-инструмент; можно указать несколько раз")
 
 args = parser.parse_args()
 
 if args.command == "validate":
     raise SystemExit(run("validate-skills"))
 if args.command == "profile":
-    write_profile(args.name or select_profile(), args.force)
+    write_profile(args.name or select_profile(), args.ais or select_ais())
     raise SystemExit(0)
 if args.command == "sync":
+    raise SystemExit(run("sync-skills"))
+if args.command == "setup":
+    write_profile(args.profile or select_profile(), args.ais or select_ais())
     raise SystemExit(run("sync-skills"))
