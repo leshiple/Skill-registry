@@ -3,6 +3,7 @@ name: python-testing
 description: Строить быстрые и выразительные тесты Python-кода.
 stack: python
 scope: shared
+priority: 20
 ---
 
 # Тестирование Python

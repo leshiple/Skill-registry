@@ -3,6 +3,7 @@ name: vue-testing
 description: Тестировать Vue-компоненты и composable через пользовательское поведение.
 stack: vue
 scope: shared
+priority: 20
 ---
 
 # Тестирование Vue

@@ -3,6 +3,7 @@ name: python-api
 description: Проектировать надёжные HTTP API на Python с явными контрактами и ошибками.
 stack: python
 scope: shared
+priority: 20
 ---
 
 # Python API

@@ -3,6 +3,7 @@ name: python-quality
 description: Поддерживать читаемый, типизированный и безопасный Python-код.
 stack: python
 scope: shared
+priority: 20
 ---
 
 # Качество Python-кода

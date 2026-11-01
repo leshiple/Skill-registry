@@ -3,6 +3,7 @@ name: elixir-domain
 description: Моделировать доменную логику на Elixir через чистые функции и явные данные.
 stack: elixir
 scope: shared
+priority: 20
 ---
 
 # Доменная логика Elixir

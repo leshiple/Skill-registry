@@ -3,6 +3,7 @@ name: vue-state
 description: Проектировать состояние Vue-приложения и границы между локальным и общим состоянием.
 stack: vue
 scope: shared
+priority: 20
 ---
 
 # Состояние Vue

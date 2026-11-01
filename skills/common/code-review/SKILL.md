@@ -3,6 +3,7 @@ name: code-review
 description: Проводить содержательное ревью изменений с проверкой корректности, рисков и тестов.
 stack: common
 scope: shared
+priority: 10
 ---
 
 # Ревью кода

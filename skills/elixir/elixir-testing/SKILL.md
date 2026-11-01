@@ -3,6 +3,7 @@ name: elixir-testing
 description: Тестировать Elixir-код, процессы и интеграции с детерминированными сценариями.
 stack: elixir
 scope: shared
+priority: 20
 ---
 
 # Тестирование Elixir

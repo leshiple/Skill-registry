@@ -3,6 +3,7 @@ name: debugging
 description: Системно диагностировать ошибки, регрессии и неожиданное поведение.
 stack: common
 scope: shared
+priority: 10
 ---
 
 # Диагностика

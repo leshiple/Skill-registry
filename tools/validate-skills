@@ -16,7 +16,7 @@ for skill_file in sorted((ROOT / "skills").glob("*/**/SKILL.md")):
         continue
     frontmatter = text[4 : text.index("\n---\n", 4)]
     fields = dict(re.findall(r"^([a-z_]+):\s*(.+)$", frontmatter, re.MULTILINE))
-    for field in ("name", "description", "stack", "scope"):
+    for field in ("name", "description", "stack", "scope", "priority"):
         if field not in fields:
             errors.append(f"{skill_file}: отсутствует поле {field}")
     expected = "/".join(skill_file.relative_to(ROOT / "skills").parts[:2])

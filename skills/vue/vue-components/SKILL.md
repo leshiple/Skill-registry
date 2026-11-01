@@ -3,6 +3,7 @@ name: vue-components
 description: Разрабатывать поддерживаемые Vue-компоненты с ясным интерфейсом.
 stack: vue
 scope: shared
+priority: 20
 ---
 
 # Vue-компоненты

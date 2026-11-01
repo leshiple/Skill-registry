@@ -3,6 +3,7 @@ name: elixir-otp
 description: Проектировать устойчивые процессы и supervision tree на Elixir/OTP.
 stack: elixir
 scope: shared
+priority: 20
 ---
 
 # Elixir и OTP

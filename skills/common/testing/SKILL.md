@@ -3,6 +3,7 @@ name: testing
 description: Проектировать и выполнять полезные тесты для изменений.
 stack: common
 scope: shared
+priority: 10
 ---
 
 # Тестирование
