@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import argparse
+import curses
 import re
 import subprocess
 import sys
@@ -21,35 +22,52 @@ def available_profiles() -> list[str]:
     return sorted(path.parent.name for path in (REGISTRY_ROOT / "profiles").glob("*/manifest.yaml"))
 
 
+def checkbox_select(title: str, options: list[str], multi: bool) -> list[str]:
+    if not options:
+        raise SystemExit("Нет доступных вариантов выбора")
+
+    def draw(screen: curses.window) -> list[str]:
+        curses.curs_set(0)
+        screen.keypad(True)
+        selected = {0} if not multi else set()
+        cursor = 0
+        while True:
+            screen.erase()
+            screen.addstr(0, 0, title)
+            screen.addstr(1, 0, "↑/↓ — перемещение   Space — выбрать   Enter — подтвердить   q — выход")
+            for index, option in enumerate(options):
+                marker = "[x]" if index in selected else "[ ]"
+                if not multi:
+                    marker = "(*)" if index in selected else "( )"
+                style = curses.A_REVERSE if index == cursor else curses.A_NORMAL
+                screen.addstr(index + 3, 0, f"{marker} {option}", style)
+            screen.refresh()
+            key = screen.getch()
+            if key in (curses.KEY_UP, ord("k")):
+                cursor = (cursor - 1) % len(options)
+            elif key in (curses.KEY_DOWN, ord("j")):
+                cursor = (cursor + 1) % len(options)
+            elif key == ord(" "):
+                if multi:
+                    selected.symmetric_difference_update({cursor})
+                else:
+                    selected = {cursor}
+            elif key in (curses.KEY_ENTER, 10, 13):
+                if selected:
+                    return [options[index] for index in sorted(selected)]
+            elif key in (ord("q"), 27):
+                raise SystemExit("Выбор отменён")
+
+    return curses.wrapper(draw)
+
+
 def select_profile() -> str:
     profiles = available_profiles()
-    if not profiles:
-        raise SystemExit("В registry нет доступных профилей")
-    print("Доступные профили:")
-    for index, profile in enumerate(profiles, 1):
-        print(f"  {index}. {profile}")
-    while True:
-        answer = input("Выберите номер профиля: ").strip()
-        if answer.isdigit() and 1 <= int(answer) <= len(profiles):
-            return profiles[int(answer) - 1]
-        print("Введите номер из списка.")
+    return checkbox_select("Выберите профиль", profiles, multi=False)[0]
 
 
 def select_ais() -> list[str]:
-    names = list(AI_PATHS)
-    print("\nДоступные ИИ-инструменты:")
-    for index, name in enumerate(names, 1):
-        print(f"  {index}. {name.capitalize()}")
-    print("Выберите один или несколько номеров через запятую.")
-    while True:
-        answer = input("ИИ-инструменты: ").strip()
-        try:
-            indexes = sorted({int(value.strip()) for value in answer.split(",")})
-        except ValueError:
-            indexes = []
-        if indexes and all(1 <= index <= len(names) for index in indexes):
-            return [names[index - 1] for index in indexes]
-        print("Введите номера из списка через запятую.")
+    return checkbox_select("Выберите ИИ-инструменты", list(AI_PATHS), multi=True)
 
 
 def write_profile(profile: str, ais: list[str]) -> None:

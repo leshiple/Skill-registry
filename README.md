@@ -46,7 +46,15 @@ git submodule add https://github.com/leshiple/Skill-registry.git skill-registry
 
 ```bash
 git -C skill-registry fetch --tags
-git -C skill-registry checkout "$(git -C skill-registry tag --sort=-version:refname | head -n 1)"
+latest_tag="$(git -C skill-registry tag --sort=-version:refname | head -n 1)"
+test -n "$latest_tag" || { echo "В registry не найдено ни одного тега" >&2; exit 1; }
+git -C skill-registry checkout "$latest_tag"
+```
+
+Теги должны быть опубликованы в удалённом registry. После создания нового тега в registry отправь его в GitHub:
+
+```bash
+git push origin v1.0.0
 ```
 
 ### Выбор профиля и ИИ-инструментов
@@ -58,6 +66,13 @@ python3 skill-registry/tools/skill-registry setup
 ```
 
 Скрипт попросит выбрать профиль и один или несколько ИИ-инструментов:
+
+- стрелки `↑`/`↓` — перемещение по списку;
+- `Space` — отметить или снять вариант;
+- `Enter` — подтвердить выбор;
+- `q` или `Esc` — отменить.
+
+Профиль выбирается один, ИИ-инструменты — через чекбоксы, поэтому можно выбрать несколько.
 
 - `frontend` — общие навыки и Vue;
 - `backend-python` — общие навыки и Python;
