@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+"""Создаёт проверенный коммит и аннотированный тег релиза."""
+
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if len(sys.argv) != 2:
+    raise SystemExit("Использование: tools/release v1.0.4")
+
+version = sys.argv[1] if sys.argv[1].startswith("v") else f"v{sys.argv[1]}"
+subprocess.run([str(ROOT / "tools" / "validate-release"), version], cwd=ROOT, check=True)
+
+status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, text=True, capture_output=True, check=True).stdout.strip()
+if not status:
+    raise SystemExit("Нет изменений для релиза")
+
+subprocess.run(["git", "add", "-A"], cwd=ROOT, check=True)
+subprocess.run(["git", "commit", "-m", f"release: {version}"], cwd=ROOT, check=True)
+subprocess.run(["git", "tag", "-a", version, "-m", f"Релиз registry {version}"], cwd=ROOT, check=True)
+print(f"Созданы коммит и тег {version}. Для публикации выполни: git push origin main {version}")

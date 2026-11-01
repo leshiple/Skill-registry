@@ -82,12 +82,6 @@ test -n "$latest_tag" || { echo "В registry не найдено ни одног
 git -C skill-registry checkout "$latest_tag"
 ```
 
-Теги должны быть опубликованы в удалённом registry. После создания нового тега в registry отправь его в GitHub:
-
-```bash
-git push origin v1.0.0
-```
-
 ### Выбор профиля и ИИ-инструментов
 
 Универсальный скрипт сам создаёт `.skill-registry.yaml` и симлинки:
@@ -169,58 +163,19 @@ python3 skill-registry/tools/skill-registry sync
 - `MINOR` — новый навык или совместимое расширение профиля;
 - `MAJOR` — изменение структуры, имени или смысла существующего навыка.
 
-После merge создаётся тег:
+После merge релиз создаётся только через проверочный скрипт:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+python3 tools/release v1.0.4
+git push origin main v1.0.4
 ```
 
-Проекты обновляют submodule до тега отдельными pull request.
+Перед запуском скрипта в `CHANGELOG.md` должна быть добавлена непустая секция конкретной версии, например `## [1.0.4]`. Скрипт проверяет её наличие, запускает валидацию, запрещает повторный тег, создаёт один коммит и аннотированный тег. Релиз может содержать изменения skills, документации, CLI, CI или самого registry. Ручное создание релизного коммита и тега не является поддерживаемым процессом.
+
+Проекты обновляют submodule до опубликованного тега отдельными pull request.
 
 ## Проверка
 
 ```bash
-python3 tools/validate-skills
-```
-
-## Единая CLI-команда
-
-Для работы из целевого проекта можно использовать один CLI-скрипт из подключённого registry:
-
-```bash
-python3 skill-registry/tools/skill-registry <команда>
-```
-
-Доступные команды:
-
-```bash
-# Проверить registry
 python3 skill-registry/tools/skill-registry validate
-
-# Интерактивно выбрать профиль и создать .skill-registry.yaml
-python3 skill-registry/tools/skill-registry profile
-
-# Выбрать профиль без интерактивного режима
-python3 skill-registry/tools/skill-registry profile --name frontend
-
-# Перезаписать существующий файл профиля
-python3 skill-registry/tools/skill-registry profile --name backend-python
-
-# Создать или обновить симлинки
-python3 skill-registry/tools/skill-registry sync
 ```
-
-Команда `setup` объединяет `profile` и `sync` в один шаг.
-
-Обычный сценарий настройки нового проекта:
-
-```bash
-git submodule update --init --recursive
-python3 skill-registry/tools/skill-registry profile
-python3 skill-registry/tools/skill-registry sync
-```
-
-## Версионирование
-
-Используется SemVer: `MAJOR.MINOR.PATCH`. Проекты подключают конкретный тег, например `v1.0.0`, и обновляют его отдельным изменением.
